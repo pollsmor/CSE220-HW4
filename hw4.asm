@@ -73,6 +73,22 @@ create_person:
 	jr $ra
 	
 is_person_exists:
+	li $v0, 0		# Assume no person exists in the Network
+	lw $t0, 16($a0)		# curr_num_of_nodes
+	li $t1, 12		# Person nodes occur in multiples of 12
+	mult $t0, $t1
+	mflo $t0		# Address of person must be less than $t0. i.e. 1 curr_nodes, must be < byte 12.
+	# Set Network address to start at its set of nodes, then subtract it from the person's address
+	addi $a0, $a0, 36	
+	sub $t2, $a1, $a0
+	blt $t2, $0, return_is_person_exists
+	bge $t2, $t0, return_is_person_exists	# As explained above for $t0
+	div $t2, $t1
+	mfhi $t0				# Remainder
+	bne $t0, $0, return_is_person_exists	# Address of person must be a multiple of 12
+	li $v0, 1
+	
+	return_is_person_exists:
 	jr $ra
 	
 is_person_name_exists:
