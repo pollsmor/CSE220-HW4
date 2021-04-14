@@ -17,6 +17,23 @@ str_len:
 	jr $ra
 	
 str_equals:
+	li $v0, 1	# Assume string is equal at first
+	equals_loop:
+		lbu $t0, 0($a0)
+		lbu $t1, 0($a1)
+		# Need a separate case for checking both strings end at the same spot
+		bne $t0, $0, not_end		# Check if str1 is at the end
+		bne $t1, $0, not_equal		# Since str1 is at the end, str2 must be too to be equal
+		j return_str_equals
+		not_end:
+		bne $t0, $t1, not_equal		# Check that the characters in question are actually equal
+		addi $a0, $a0, 1
+		addi $a1, $a1, 1
+		j equals_loop
+		
+	not_equal:
+	li $v0, 0
+	return_str_equals:
 	jr $ra
 	
 str_cpy:
