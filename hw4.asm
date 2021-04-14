@@ -20,6 +20,19 @@ str_equals:
 	jr $ra
 	
 str_cpy:
+	li $v0, 0
+	cpy_loop:
+		lbu $t0, 0($a0)
+		beq $t0, $0, return_str_cpy
+		sb $t0, 0($a1)
+		
+		addi $v0, $v0, 1
+		addi $a0, $a0, 1	# Increment address of src
+		addi $a1, $a1, 1	# Increment address of dest
+		j cpy_loop
+	
+	return_str_cpy:
+	sb $0, 0($a1)		# Store null terminator into destination
 	jr $ra
 	
 create_person:
