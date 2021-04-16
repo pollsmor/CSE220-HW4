@@ -16,7 +16,7 @@ Network:
   .asciiz "NAME" # Name property (bytes 24 - 28)
   .asciiz "FRIEND" # FRIEND property (bytes 29 - 35)
    # nodes (bytes 36 - 95)	
-  .byte 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0	
+  .byte 'C' 'a' 'c' 'o' 'p' 'h' 'o' 'n' 'i' 'x' 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0	
    # set of edges (bytes 96 - 215)
   .word 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
 
@@ -29,10 +29,25 @@ main:
 	la $a0, Network
 	move $a1, $s0
 	la $a2, Name_prop
-	la $a3, Name1
+	la $a3, Name2
 	jal add_person_property
 	
 	#write test code
+	move $a0, $v0
+	li $v0, 1
+	syscall
+	li $a0, '\n'
+	li $v0, 11
+	syscall
+	
+	# Call is_person_name_exists
+	la $a0, Network
+	la $a1, Name2
+	jal is_person_name_exists 
+	
+	move $a0, $v0
+	li $v0, 1
+	syscall
 	
 	li $v0, 10
 	syscall

@@ -37,7 +37,7 @@ str_equals:
 	jr $ra
 	
 str_cpy:
-	li $v0, 0
+	li $v0, 0	# Track amount of characters copied
 	cpy_loop:
 		lbu $t0, 0($a0)
 		beq $t0, $0, return_str_cpy
@@ -116,12 +116,14 @@ is_person_name_exists:
 		beq $v0, $0, advance_check_name_loop
 		# The strings equal, return 1
 		li $v0, 1
+		move $v1, $s0		# Reference to person in Network
 		j return_is_person_name_exists
 		
 		advance_check_name_loop:
 		add $s0, $s0, $s2	# Increment Network by size of node
 		addi $s3, $s3, -1	# Decrement amount of nodes remaining to loop through
 		bne $s3, $0, check_person_name_loop
+	
 	
 	return_is_person_name_exists:
 	lw $ra, 0($sp)
@@ -142,7 +144,7 @@ add_person_property:
 	move $s1, $a1		# Store person
 	move $s2, $a3		# Store prop_val (name of person)
 
-	# Call str_equal to make sure prop_name is "NAME"c
+	# Call str_equal to make sure prop_name is "NAME"
 	check_condition_1:
 	la $a0, Name_prop
 	move $a1, $a2		# prop_name (should be "NAME")
@@ -154,7 +156,7 @@ add_person_property:
 	# Call is_person_exists
 	check_condition_2:
 	move $a0, $s0
-	move $a1, $s2
+	move $a1, $s1
 	jal is_person_exists
 	bne $v0, $0, check_condition_3
 	li $v0, -1
@@ -169,8 +171,21 @@ add_person_property:
 	li $v0, -2
 	j return_add_person_property
 	
-	# Loop through nodes array and use str_equals to make sure prop_val is unique
+	# Check that the person's name doesn't already exist in the network
 	check_condition_4:
+	move $a0, $s0
+	move $a1, $s2
+	jal is_person_name_exists
+	beq $v0, $0, addNameProperty
+	li $v0, -3
+	j return_add_person_property
+	
+	# All conditions have been passed, call str_cpy
+	addNameProperty:
+	move $a0, $s2		# src
+	move $a1, $s1		# dest
+	jal str_cpy
+	li $v0, 1
 	
 	return_add_person_property:
 	lw $ra, 0($sp)
