@@ -195,10 +195,23 @@ add_person_property:
 	addi $sp, $sp, 16
 	jr $ra
 	
+# The exact same function as from part 6?
 get_person:
+	addi $sp, $sp, -4
+	sw $ra, 0($sp)
+
+	jal is_person_name_exists
+	beq $v0, $0, return_get_person
+	move $v0, $v1	# Since $v1 from part 6 returns the address of the Person node
+
+	return_get_person:
+	lw $ra, 0($sp)
+	addi $sp, $sp, 4
 	jr $ra
 	
 is_relation_exists:
+	
+
 	jr $ra
 	
 add_relation:
