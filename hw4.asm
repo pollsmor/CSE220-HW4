@@ -249,11 +249,88 @@ is_relation_exists:
 	jr $ra
 	
 add_relation:
+	addi $sp, $sp, -16
+	sw $ra, 0($sp)
+	sw $s0, 4($sp)
+	sw $s1, 8($sp)
+	sw $s2, 12($sp)
+	move $s0, $a0		# Store Network
+	move $s1, $a1		# Store person 1
+	move $s2, $a2		# Store person 2
 	
+	li $v0, 0
+	# Call is_person_exists on both person1 and person2
+	check_condition_1_rel:
+	jal is_person_exists 	# $a0 already contains Network, $a1 already contains person 1
+	beq $v0, $0, return_add_relation
+	# =====
+	move $a0, $s0
+	move $a1, $s2
+	jal is_person_exists
+	beq $v0, $0, return_add_relation
+	
+	# Check if network is at capacity for edges
+	check_condition_2_rel:
+	lw $t0, 4($s0)		# Total edges
+	lw $t1, 20($s0)		# Current amount of edges
+	blt $t1, $t0, check_condition_3_rel
+	
+	# No edges available
+	li $v0, -1
+	j return_add_relation
+	
+	# Call is_relation_exists to make sure all relations are unique
+	check_condition_3_rel:
+	move $a0, $s0
+	move $a1, $s1
+	move $a2, $s2
+	jal is_relation_exists
+	beq $v0, $0, check_condition_4_rel
+	li $v0, -2
+	j return_add_relation
+	
+	# Check if person1 == person2
+	check_condition_4_rel:
+	li $v0, -3		# Assume return value is -3
+	beq $s1, $s2, return_add_relation
+	
+	# =====
+	
+	# Find amount of bytes needed to skip past nodes array
+	lw $t0, 0($s0)		# Load total amount of nodes
+	lw $t1, 8($s0)		# Load size of node
+	mult $t0, $t1
+	mflo $t0
+	
+	# Find amount of bytes needed to skip to next open spot in edges array
+	lw $t1, 20($s0)		# Load current amount of edges
+	lw $t2, 12($s0)		# Load size of edge
+	mult $t1, $t2
+	mflo $t2
+	
+	# Increment current amount of edges
+	addi $t1, $t1, 1
+	sw $t1, 20($s0)
+	
+	addi $s0, $s0, 36
+	add $s0, $s0, $t0
+	add $s0, $s0, $t2
+	sw $s1, 0($s0)
+	sw $s2, 4($s0)
+	sw $0, 8($s0)
+	li $v0, 1
 
+	return_add_relation:
+	lw $ra, 0($sp)
+	lw $s0, 4($sp)
+	lw $s1, 8($sp)
+	lw $s2, 12($sp)
+	addi $sp, $sp, 16
 	jr $ra
 	
 add_relation_property:
+	
+
 	jr $ra
 	
 is_friend_of_friend:
