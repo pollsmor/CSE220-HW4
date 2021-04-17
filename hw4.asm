@@ -210,11 +210,47 @@ get_person:
 	jr $ra
 	
 is_relation_exists:
+	li $v0, 0		# Assume no relation exists at first
+	lw $t0, 12($a0)		# Size of edge
+	lw $t1, 20($a0)		# Current amount of edges, use as loop counter
+	beq $t1, $0, return_is_relation_exists
+	beq $a1, $a2, return_is_relation_exists		# A person can't be related to itself
 	
-
+	li $v0, 1		# Now assume relation exists
+	# Now find out how large the nodes array is to skip past it
+	lw $t2, 8($a0)		# Size of node
+	lw $t3, 0($a0)		# Total amount of nodes
+	mult $t2, $t3
+	mflo $t2
+	addi $a0, $a0, 36	# First increment Network address by 36 to reach nodes array
+	add $a0, $a0, $t2
+	
+	check_relation_loop:
+		lw $t2, 0($a0)			# Person node 1
+		lw $t3, 4($a0)			# Person node 2
+		check_person_1:
+		beq $a1, $t2, check_person_2
+		beq $a1, $t3, check_person_2
+		# Input person 1 is equal to neither people in the edge
+		j advance_relation_loop
+		
+		check_person_2:
+		beq $a2, $t2, return_is_relation_exists
+		beq $a2, $t3, return_is_relation_exists
+		# Input person 2 is equal to neither people in the edge, advance loop
+		
+		advance_relation_loop:
+		addi $t1, $t1, -1
+		add $a0, $a0, $t0
+		bne $t1, $0, check_relation_loop
+		
+	li $v0, 0
+	return_is_relation_exists:
 	jr $ra
 	
 add_relation:
+	
+
 	jr $ra
 	
 add_relation_property:
