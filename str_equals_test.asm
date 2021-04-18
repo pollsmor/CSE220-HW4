@@ -1,7 +1,9 @@
 # add test cases to data section
 .data
-str1: .asciiz "Jane Doe"
-str2: .asciiz "Jane Doe"
+str1: .asciiz "FRIEND"
+str2: .asciiz "FRIEND"
+Name_prop: .asciiz "NAME"
+Frnd_prop: .asciiz "FRIEND"
 
 str3: .asciiz "Jane Does"
 .text:

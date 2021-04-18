@@ -11,8 +11,8 @@ Network:
   .word 10  #total_edges (bytes 4- 7)
   .word 12  #size_of_node (bytes 8 - 11)
   .word 12  #size_of_edge (bytes 12 - 15)
-  .word 0   #curr_num_of_nodes (bytes 16 - 19)
-  .word 0   #curr_num_of_edges (bytes 20 - 23)
+  .word 2   #curr_num_of_nodes (bytes 16 - 19)
+  .word 1   #curr_num_of_edges (bytes 20 - 23)
   .asciiz "NAME" # Name property (bytes 24 - 28)
   .asciiz "FRIEND" # FRIEND property (bytes 29 - 35)
    # nodes (bytes 36 - 95)	
@@ -22,20 +22,26 @@ Network:
 
 .text:
 main:
+	# Add relation
 	la $a0, Network
-	jal create_person
-	move $s0, $a0
-	
+	addi $a1, $a0, 36
+	addi $a2, $a0, 48
+	jal add_relation
+
 	la $a0, Network
-	la $a1, Name2
-	move $a2, $s0
+	addi $a1, $a0, 36
+	addi $a2, $a0, 48
 	la $a3, Frnd_prop
 	addi $sp, $sp, -4
 	li $s1, 1
 	sw $s1, 0($sp) 
 	jal add_relation_property
+	addi $sp, $sp, 4
 	
 	#write test code
+	move $a0, $v0
+	li $v0, 1
+	syscall
 	
 	li $v0, 10
 	syscall

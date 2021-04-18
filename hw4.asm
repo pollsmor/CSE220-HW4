@@ -146,7 +146,7 @@ add_person_property:
 
 	# Call str_equal to make sure prop_name is "NAME"
 	check_condition_1:
-	la $a0, Name_prop
+	addi $a0, $s0, 24	# "NAME" in Network instance
 	move $a1, $a2		# prop_name (should be "NAME")
 	jal str_equals
 	bne $v0, $0, check_condition_2
@@ -329,8 +329,85 @@ add_relation:
 	jr $ra
 	
 add_relation_property:
-	
+	lw $t0, 0($sp)		# Get 5th argument - prop_value
 
+	addi $sp, $sp, -24
+	sw $ra, 0($sp)
+	sw $s0, 4($sp)
+	sw $s1, 8($sp)
+	sw $s2, 12($sp)
+	sw $s3, 16($sp)
+	sw $s4, 20($sp)
+	move $s0, $a0		# Store Network
+	move $s1, $a1		# Store person 1
+	move $s2, $a2		# Store person 2
+	move $s3, $a3		# Store prop_name (should be "FRIEND")
+	move $s4, $t0		# Store prop_value
+
+	# Call is_relation_exists 
+	check_condition_1_prop:
+	jal is_relation_exists		# $a0, $a1, $a2 already have the required args
+	bne $v0, $0, check_condition_2_prop	
+	li $v0, 0
+	j return_add_relation_property
+	
+	# Call str_equals to see if the prop_name string is "FRIEND"
+	check_condition_2_prop:	
+	move $a0, $s3
+	addi $a1, $s0, 29
+	jal str_equals
+	bne $v0, $0, check_condition_3_prop
+	li $v0, -1
+	j return_add_relation_property
+	
+	# Make sure prop_value is >= 0
+	check_condition_3_prop:
+	li $v0, -2		# Assume prop_val < 0 first
+	blt $s4, $0, return_add_relation_property
+	
+	# ==================================================================================
+	# Obtain relevant edge in edges array since relation exists
+	lw $t0, 12($s0)		# Size of edge
+	lw $t1, 20($s0)		# Current amount of edges, use as loop counter
+	# Now find out how large the nodes array is to skip past it
+	lw $t2, 8($s0)		# Size of node
+	lw $t3, 0($s0)		# Total amount of nodes
+	mult $t2, $t3
+	mflo $t2
+	addi $s0, $s0, 36	# First increment Network address by 36 to reach nodes array
+	add $s0, $s0, $t2
+	part11_loop:
+		lw $t2, 0($s0)			# Person node 1
+		lw $t3, 4($s0)			# Person node 2
+		part11_1:
+		beq $s1, $t2, part11_2
+		beq $s1, $t3, part11_2
+		# Input person 1 is equal to neither people in the edge
+		j advance_part11_loop
+		
+		part11_2:
+		beq $s2, $t2, edge_found
+		beq $s2, $t3, edge_found
+		# Input person 2 is equal to neither people in the edge, advance loop
+		j advance_part11_loop
+		
+		edge_found:
+		li $v0, 1
+		sb $s4, 8($s0)			# Store prop_value into bytes 8-11 of edge
+		
+		advance_part11_loop:
+		addi $t1, $t1, -1
+		add $s0, $s0, $t0
+		bne $t1, $0, part11_loop
+
+	return_add_relation_property:
+	lw $ra, 0($sp)
+	lw $s0, 4($sp)
+	lw $s1, 8($sp)
+	lw $s2, 12($sp)
+	lw $s3, 16($sp)
+	lw $s4, 20($sp)
+	addi $sp, $sp, 24
 	jr $ra
 	
 is_friend_of_friend:
