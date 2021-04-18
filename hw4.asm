@@ -242,6 +242,7 @@ is_relation_exists:
 		advance_relation_loop:
 		addi $t1, $t1, -1
 		add $a0, $a0, $t0
+		move $v1, $a0			# Update the current edge I'm iterating through
 		bne $t1, $0, check_relation_loop
 		
 	li $v0, 0
@@ -331,13 +332,14 @@ add_relation:
 add_relation_property:
 	lw $t0, 0($sp)		# Get 5th argument - prop_value
 
-	addi $sp, $sp, -24
+	addi $sp, $sp, -28
 	sw $ra, 0($sp)
 	sw $s0, 4($sp)
 	sw $s1, 8($sp)
 	sw $s2, 12($sp)
 	sw $s3, 16($sp)
 	sw $s4, 20($sp)
+	sw $s5, 24($sp)
 	move $s0, $a0		# Store Network
 	move $s1, $a1		# Store person 1
 	move $s2, $a2		# Store person 2
@@ -347,6 +349,8 @@ add_relation_property:
 	# Call is_relation_exists 
 	check_condition_1_prop:
 	jal is_relation_exists		# $a0, $a1, $a2 already have the required args
+	move $s5, $v1			# is_relation_exists returns relevant edge's address
+	
 	bne $v0, $0, check_condition_2_prop	
 	li $v0, 0
 	j return_add_relation_property
@@ -365,40 +369,9 @@ add_relation_property:
 	li $v0, -2		# Assume prop_val < 0 first
 	blt $s4, $0, return_add_relation_property
 	
-	# ==================================================================================
-	# Obtain relevant edge in edges array since relation exists
-	lw $t0, 12($s0)		# Size of edge
-	lw $t1, 20($s0)		# Current amount of edges, use as loop counter
-	# Now find out how large the nodes array is to skip past it
-	lw $t2, 8($s0)		# Size of node
-	lw $t3, 0($s0)		# Total amount of nodes
-	mult $t2, $t3
-	mflo $t2
-	addi $s0, $s0, 36	# First increment Network address by 36 to reach nodes array
-	add $s0, $s0, $t2
-	part11_loop:
-		lw $t2, 0($s0)			# Person node 1
-		lw $t3, 4($s0)			# Person node 2
-		part11_1:
-		beq $s1, $t2, part11_2
-		beq $s1, $t3, part11_2
-		# Input person 1 is equal to neither people in the edge
-		j advance_part11_loop
-		
-		part11_2:
-		beq $s2, $t2, edge_found
-		beq $s2, $t3, edge_found
-		# Input person 2 is equal to neither people in the edge, advance loop
-		j advance_part11_loop
-		
-		edge_found:
-		li $v0, 1
-		sb $s4, 8($s0)			# Store prop_value into bytes 8-11 of edge
-		
-		advance_part11_loop:
-		addi $t1, $t1, -1
-		add $s0, $s0, $t0
-		bne $t1, $0, part11_loop
+	# All conditions passed
+	sw $s4, 8($s5)		# Store prop_value into bytes 8-11 of edge
+	li $v0, 1
 
 	return_add_relation_property:
 	lw $ra, 0($sp)
@@ -407,8 +380,127 @@ add_relation_property:
 	lw $s2, 12($sp)
 	lw $s3, 16($sp)
 	lw $s4, 20($sp)
-	addi $sp, $sp, 24
+	lw $s5, 24($sp)
+	addi $sp, $sp, 28
 	jr $ra
 	
 is_friend_of_friend:
+	addi $sp, $sp, -32
+	sw $ra, 0($sp)
+	sw $s0, 4($sp)			# Store Network
+	sw $s1, 8($sp)			# Store name2 argument at first, address of person1 later
+	sw $s2, 12($sp)			# Store address of person2
+	sw $s3, 16($sp)			# Store current amount of edges
+	sw $s4, 20($sp)			# Store Network again, helpful
+	sw $s5, 24($sp)			# Store first person of current edge
+	sw $s6, 28($sp)			# Store second person of current edge
+	move $s0, $a0			
+	move $s1, $a2	
+	move $s4, $a0					
+	
+	# Make sure first person is in the network ($a0 already contains Network, $a1 name1)
+	check_first_person:
+	jal get_person			# Don't store person 1's address *just yet*
+	bne $v0, $0, check_second_person
+	li $v0, -1
+	j return_is_friend_of_friend
+
+	# Make sure second person is in the network
+	check_second_person:
+	move $a0, $s0
+	move $a1, $s1
+	move $s1, $v0			# Now $s1 (name2) is used, I can replace it with address of person1
+	jal get_person
+	move $s2, $v0			# Store person 2's address (if they exist in the Network)
+	bne $v0, $0, isFOF
+	li $v0, -1
+	j return_is_friend_of_friend
+	
+	isFOF:
+	# Call is_relation_exists to make sure person1 and person2 are not friends directly
+	move $a0, $s0
+	move $a1, $s1
+	move $a2, $s2
+	jal is_relation_exists	
+	beq $v0, $0, notDirectFriends
+	# If friend attribute is 0, that is still valid
+	lw $t0, 8($v1)			# is_relation_exists returns relevant edge, get bytes 8-11
+	
+	beq $t0, $0, notDirectFriends
+	li $v0, 0	
+	j return_is_friend_of_friend
+	
+	# 1. Loop through finding each friendship involving Person 1
+	     # Note: skip if it's a relationship involving both Person 1 and Person 2
+	# 2. Uses is_relation_exists to check if relation (subsequently) friendship
+	#    exists between Person 2 and the friend of Person 1
+	notDirectFriends:
+	lw $s3, 20($s0)			# Store curr_edges, used as loop counter
+	# Get to edges array in Network	
+	addi $s4, $s4, 36
+	lw $t0, 8($s0)			# Size of node
+	lw $t1, 0($s0)			# Total nodes
+	mult $t0, $t1
+	mflo $t0	
+	add $s4, $s4, $t0
+	FOF_loop:
+		lw $t0, 8($s4)		# Check if a friendship even exists
+		beq $t0, $0, advance_FOF_loop
+		lw $s5, 0($s4)		# Load person 1 in edge
+		lw $s6, 4($s4)		# Load person 2 in edge
+		beq $s5, $s1, person1RelFound
+		beq $s6, $s1, person1RelFound
+		j advance_FOF_loop
+		
+		person1RelFound:
+		# Make sure person 2 isn't the other
+		beq $s5, $s2, advance_FOF_loop
+		beq $s6, $s2, advance_FOF_loop		
+		
+		beq $s5, $s1, friend_of_person_1_is_s6
+			# Don't know which of the pair is person 1 and which is the friend of person 1
+			friend_of_person_1_is_s5:
+			# Call is_relation_exists with friend of person 1 and person 2
+			move $a0, $s0
+			move $a1, $s2
+			move $a2, $s5
+			jal is_relation_exists
+			beq $v0, $0, advance_FOF_loop
+			# Relation does exist, now check if their friendship attribute is 1
+			lw $t0, 8($v1)		# Since $v1 from is_relation_exists returns edge address
+			beq $t0, $0, advance_FOF_loop
+			# Is indeed a friend of friend!
+			li $v0, 1
+			j return_is_friend_of_friend
+			
+			friend_of_person_1_is_s6:
+			# Call is_relation_exists with friend of person 1 and person 2
+			move $a0, $s0
+			move $a1, $s2
+			move $a2, $s6
+			jal is_relation_exists
+			beq $v0, $0, advance_FOF_loop
+			# Relation does exist, now check if their friendship attribute is 1
+			lw $t0, 8($v1)		# Since $v1 from is_relation_exists returns edge address
+			beq $t0, $0, advance_FOF_loop
+			# Is indeed a friend of friend!
+			li $v0, 1
+			j return_is_friend_of_friend
+			
+	
+		advance_FOF_loop:
+		addi $s3, $s3, -1
+		bne $s3, $0, FOF_loop
+
+	li $v0, 0				# Not a friend of friend
+	return_is_friend_of_friend:
+	lw $ra, 0($sp)
+	lw $s0, 4($sp)
+	lw $s1, 8($sp)
+	lw $s2, 12($sp)
+	lw $s3, 16($sp)
+	sw $s4, 20($sp)
+	sw $s5, 24($sp)
+	sw $s6, 28($sp)
+	addi $sp, $sp, 32
 	jr $ra
