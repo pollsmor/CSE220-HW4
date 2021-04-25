@@ -217,13 +217,20 @@ is_relation_exists:
 	beq $a1, $a2, return_is_relation_exists		# A person can't be related to itself
 	
 	li $v0, 1		# Now assume relation exists
-	# Now find out how large the nodes array is to skip past it
+	# Now find out how large the nodes array is to skip past it	
 	lw $t2, 8($a0)		# Size of node
 	lw $t3, 0($a0)		# Total amount of nodes
 	mult $t2, $t3
 	mflo $t2
 	addi $a0, $a0, 36	# First increment Network address by 36 to reach nodes array
 	add $a0, $a0, $t2
+	# Find next multiple of 4 as that is where edges array resides (current location is possible)
+	addi $a0, $a0, 3
+	li $t2, 4
+	div $a0, $t2
+	mflo $a0
+	mult $a0, $t2
+	mflo $a0
 	
 	check_relation_loop:
 		lw $t2, 0($a0)			# Person node 1
@@ -315,7 +322,15 @@ add_relation:
 	
 	addi $s0, $s0, 36
 	add $s0, $s0, $t0
-	add $s0, $s0, $t2
+	# Find next multiple of 4 as that is where edges array resides (current location is possible)
+	addi $s0, $s0, 3
+	li $t0, 4
+	div $s0, $t0
+	mflo $s0
+	mult $s0, $t0
+	mflo $s0
+	
+	add $s0, $s0, $t2	# Skip to next open spot in edges array
 	sw $s1, 0($s0)
 	sw $s2, 4($s0)
 	sw $0, 8($s0)
@@ -391,7 +406,7 @@ is_friend_of_friend:
 	sw $s1, 8($sp)			# Store name2 argument at first, address of person1 later
 	sw $s2, 12($sp)			# Store address of person2
 	sw $s3, 16($sp)			# Store current amount of edges
-	sw $s4, 20($sp)			# Store Network again, helpful
+	sw $s4, 20($sp)			# Store Network again for method calls without being afraid of changes
 	sw $s5, 24($sp)			# Store first person of current edge
 	sw $s6, 28($sp)			# Store second person of current edge
 	move $s0, $a0			
@@ -443,6 +458,13 @@ is_friend_of_friend:
 	mult $t0, $t1
 	mflo $t0	
 	add $s4, $s4, $t0
+	# Find next multiple of 4 as that is where edges array resides (current location is possible)
+	addi $s4, $s4, 3
+	li $t0, 4
+	div $s4, $t0
+	mflo $s4
+	mult $s4, $t0
+	mflo $s4
 	FOF_loop:
 		lw $t0, 8($s4)		# Check if a friendship even exists
 		beq $t0, $0, advance_FOF_loop

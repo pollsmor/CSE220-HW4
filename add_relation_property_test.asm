@@ -9,7 +9,7 @@ Frnd_prop: .asciiz "FRIEND"
 Network:
   .word 5   #total_nodes (bytes 0 - 3)
   .word 10  #total_edges (bytes 4- 7)
-  .word 12  #size_of_node (bytes 8 - 11)
+  .word 13  #size_of_node (bytes 8 - 11)
   .word 12  #size_of_edge (bytes 12 - 15)
   .word 2   #curr_num_of_nodes (bytes 16 - 19)
   .word 1   #curr_num_of_edges (bytes 20 - 23)
@@ -25,12 +25,12 @@ main:
 	# Add relation
 	la $a0, Network
 	addi $a1, $a0, 36
-	addi $a2, $a0, 48
+	addi $a2, $a0, 49
 	jal add_relation
 
 	la $a0, Network
 	addi $a1, $a0, 36
-	addi $a2, $a0, 48
+	addi $a2, $a0, 49
 	la $a3, Frnd_prop
 	addi $sp, $sp, -4
 	li $s1, 1
